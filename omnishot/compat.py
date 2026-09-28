@@ -41,11 +41,18 @@ def header_abi_hash(version_h):
 
 
 def header_version_file():
-    """Path of the installed Hyprland headers' version.h, or None."""
-    try:include = subprocess.run(["pkg-config", "--variable=includedir", "hyprland"], capture_output=True, text=True, timeout=10).stdout.strip()
+    """The version.h a plugin build would compile against, or None.
+
+    Found through the same -I paths build-clean.sh compiles with. hyprland.pc
+    sets only a prefix, not includedir, so asking for includedir is not enough.
+    """
+    try:flags = subprocess.run(["pkg-config", "--cflags-only-I", "hyprland"], capture_output=True, text=True, timeout=10).stdout.split()
     except (OSError, subprocess.SubprocessError):return None
-    path = Path(include or "/usr/include") / "hyprland/src/version.h"
-    return path if path.is_file() else None
+    for flag in flags:
+        include = Path(flag.removeprefix("-I"))
+        for path in (include / "hyprland/src/version.h", include / "version.h" if include.match("hyprland/src") else None):
+            if path and path.is_file():return path
+    return None
 
 
 def _output(args):

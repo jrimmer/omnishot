@@ -194,3 +194,14 @@ def test_compositor_checks_are_skipped_outside_a_session(tmp_path, capsys):
     assert not [c for c in machine.calls if c[:2] == ['hyprctl', 'plugin']]
     doctor.main([], system=machine)
     assert '1 problem, 0 warnings' in capsys.readouterr().out
+
+
+def test_headers_are_found_through_the_compiler_include_paths(tmp_path, monkeypatch):
+    # hyprland.pc sets only prefix=, so the -I flags are what a build sees.
+    (tmp_path / 'hyprland/src').mkdir(parents=True)
+    (tmp_path / 'hyprland/src/version.h').write_text(VERSION_H)
+    flags = f'-I{tmp_path} -I{tmp_path}/hyprland/protocols -I{tmp_path}/hyprland -I{tmp_path}/hyprland/src -I/usr/include/pixman-1\n'
+    monkeypatch.setattr(compat.subprocess, 'run', lambda *a, **k: type('R', (), {'stdout': flags})())
+    assert compat.header_version_file() == tmp_path / 'hyprland/src/version.h'
+    monkeypatch.setattr(compat.subprocess, 'run', lambda *a, **k: type('R', (), {'stdout': ''})())
+    assert compat.header_version_file() is None
