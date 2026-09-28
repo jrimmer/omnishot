@@ -119,8 +119,10 @@ Panel {
             onStreamFinished: root.pluginHead = text.trim()
         }
     }
-    // `omarchy plugin update` moves HEAD without reloading this widget.
-    Timer { interval: 60000; running: root.managed; repeat: true; onTriggered: { headProcess.running = true; stampFile.reload() } }
+    // `omarchy plugin update` moves HEAD without reloading this widget. The
+    // stamp watch cannot fire for a file that did not exist when it started,
+    // so poll quickly while setup or an update is pending.
+    Timer { interval: root.setupNeeded || root.updateReady ? 2000 : 60000; running: root.managed; repeat: true; onTriggered: { headProcess.running = true; stampFile.reload() } }
     FileView {
         id: stampFile
         path: (Quickshell.env("OMNISHOT_INSTALL_DIR") || root.dataHome + "/omnishot-app") + "/.omnishot-source"
