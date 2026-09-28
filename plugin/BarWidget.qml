@@ -92,7 +92,7 @@ Panel {
     onSelectedIndexChanged: if (cursorActive) revealSelection()
     IpcHandler {
         target: root.ipcTarget
-        function state(): string { return JSON.stringify({panelApi: 1, opened: root.opened, visible: panel.visible, recording: root.recording, text: button.text, width: button.width, selected: root.selectedIndex, actions: root.actions, cardX: panel.cardOrigin.x, cardY: panel.cardOrigin.y, cardWidth: panel.contentWidth, cardHeight: panel.contentHeight}) }
+        function state(): string { return JSON.stringify({panelApi: 1, opened: root.opened, visible: panel.visible, recording: root.recording, text: button.text, width: button.width, selected: root.selectedIndex, actions: root.actions, cardX: panel.cardOrigin.x, cardY: panel.cardOrigin.y, cardWidth: panel.contentWidth, cardHeight: panel.contentHeight, managed: root.managed, pluginRoot: root.pluginRoot, pluginHead: root.pluginHead, builtHead: root.builtHead}) }
         function open(): void { root.open() }
         function close(): void { root.close() }
         function toggle(): void { root.toggle() }
