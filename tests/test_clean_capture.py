@@ -91,6 +91,7 @@ def test_rejected_plugin_degrades_to_plain_capture(monkeypatch,native_capture_fi
         if args[1]=='eval':raise AssertionError('registration must not be attempted')
         return b'Plugin x could not be loaded: plugin crashed/threw in main: Could not hook IElementRenderer::preDrawSurface'
     monkeypatch.setattr(backend,'run',run)
+    monkeypatch.setattr('platform.machine',lambda:'aarch64')
     with CursorMirror() as cursor:assert not cursor.enabled
     capture=CleanCapture([dict(name='display',x=0,y=0,width=1920,height=1080,scale=1)],None)
     assert capture.start() is False and not capture.enabled
@@ -98,3 +99,17 @@ def test_rejected_plugin_degrades_to_plain_capture(monkeypatch,native_capture_fi
     capture.stop()
     with pytest.raises(MirrorUnavailable,match='preDrawSurface'):SelectionMirror().start()
     assert [call[2] for call in calls if call[1]=='plugin']==['load']
+
+
+def test_x86_load_failure_asks_for_rebuild(monkeypatch,native_capture_files):
+    """An ABI mismatch is fixable, so it must not silently disable clean capture."""
+    from omnishot import backend
+    from omnishot.clean_capture import MirrorLease,CursorMirror
+    monkeypatch.setattr(MirrorLease,'unavailable',None);monkeypatch.setattr(MirrorLease,'roles',{});monkeypatch.setattr(MirrorLease,'loaded_path',None)
+    monkeypatch.setattr(backend,'hypr',lambda query:[])
+    monkeypatch.setattr(backend,'run',lambda args,**kwargs:b'Plugin x could not be loaded: plugin crashed/threw in main: OmniShot compositor ABI mismatch')
+    monkeypatch.setattr('platform.machine',lambda:'x86_64')
+    for attempt in range(2):
+        with pytest.raises(RuntimeError,match='rebuilding(?s:.*)ABI mismatch'):CursorMirror().start()
+    assert MirrorLease.unavailable is None
+    with pytest.raises(RuntimeError,match='rebuilding'):CleanCapture([dict(name='display',x=0,y=0,width=1920,height=1080,scale=1)],None).start()

@@ -1,6 +1,7 @@
 """Lifecycle for the clean Hyprland mirror and GSR capture source."""
 from __future__ import annotations
 import os
+import platform
 import threading
 from pathlib import Path
 from . import backend
@@ -9,7 +10,7 @@ NATIVE = Path(__file__).resolve().parent.parent / "native"
 
 
 class MirrorUnavailable(RuntimeError):
-    """The compositor rejected the clean mirror plugin (e.g. no function hooks on aarch64)."""
+    """Hyprland cannot hook functions on this CPU (aarch64), so the clean mirror cannot load."""
 
 
 class MirrorLease:
@@ -30,6 +31,9 @@ class MirrorLease:
                 # hyprctl exits 0 even when the plugin fails to initialize.
                 output=backend.run(['hyprctl','plugin','load',path]).decode(errors='replace').strip()
                 if not self.loaded():
+                    if 'Could not hook' not in output and platform.machine()=='x86_64':
+                        # e.g. an ABI mismatch after a Hyprland upgrade: fixable, so say so.
+                        raise RuntimeError("OmniShot's capture components need rebuilding. Run install.sh from the OmniShot folder.\n\n"+output)
                     MirrorLease.unavailable=output or 'The OmniShot compositor plugin could not be loaded'
                     raise MirrorUnavailable(MirrorLease.unavailable)
                 MirrorLease.loaded_path=path
