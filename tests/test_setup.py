@@ -109,6 +109,21 @@ def test_update_mirrors_source_but_keeps_build_outputs(plugin):
     assert (plugin.runtime / '.omnishot-source').read_text().strip() == head
 
 
+def test_update_restarts_the_shell_only_when_the_widget_changed(plugin):
+    restart = ['omarchy', 'restart', 'shell']
+    assert plugin.run('setup.sh').returncode == 0
+    assert restart not in plugin.calls()
+    (plugin.source / 'added.txt').write_text('new')
+    plugin.commit('app only')
+    assert plugin.run('setup.sh').returncode == 0
+    assert restart not in plugin.calls()
+    (plugin.source / 'plugin').mkdir()
+    (plugin.source / 'plugin/BarWidget.qml').write_text('Item {}')
+    plugin.commit('widget')
+    assert plugin.run('setup.sh').returncode == 0
+    assert plugin.calls().count(restart) == 1
+
+
 def test_failed_build_is_left_unstamped(plugin):
     result = plugin.run('setup.sh', INSTALL_EXIT='3')
     assert result.returncode != 0

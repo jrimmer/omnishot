@@ -49,6 +49,9 @@ if (( task_legacy )); then
   printf 'Moved the previous OmniShot checkout to %s\nDelete it once you are happy with this installation.\n' "$task_previous"
 fi
 
+task_previous_build=""
+[[ -f $omnishot_stamp ]] && task_previous_build=$(<"$omnishot_stamp")
+
 mkdir -p -- "$omnishot_runtime"
 # Remove the stamp first so an interrupted setup reads as unfinished.
 rm -f -- "$omnishot_stamp"
@@ -56,6 +59,15 @@ rm -f -- "$omnishot_stamp"
 rsync -a --delete --exclude=/.git --filter=':- .gitignore' -- "$task_source/" "$omnishot_runtime/"
 (cd -- "$omnishot_runtime" && bash install.sh)
 printf '%s\n' "$task_commit" >"$omnishot_stamp"
+
+# The shell hot-reloads a changed plugin but can keep serving the previous
+# widget component from its cache, so restart it when the widget changed
+# since the last build. An unknown previous commit counts as changed.
+if [[ -n $task_previous_build && $task_previous_build != "$task_commit" ]] &&
+  ! git -C "$task_source" diff --quiet "$task_previous_build" "$task_commit" -- manifest.json plugin 2>/dev/null; then
+  printf 'Restarting the Omarchy shell to load the updated bar widget.\n'
+  omarchy restart shell || true
+fi
 
 if (( task_was_running )); then
   setsid -f "$omnishot_launcher" >/dev/null 2>&1 </dev/null || true
