@@ -185,3 +185,12 @@ def test_supported_versions_have_one_source():
         assert version in stated, f'README.md does not list tested version {version}; update it to match omnishot/compat.py'
     assert '-m omnishot.compat warn' in (repo / 'install.sh').read_text()
     assert 'omnishot.compat header-abi' in (repo / 'native/build-clean.sh').read_text()
+
+
+def test_compositor_checks_are_skipped_outside_a_session(tmp_path, capsys):
+    machine = Machine(tmp_path);machine.env = {};machine.widget = False
+    found = results(machine, load=True)
+    assert {name for name, r in found.items() if r.status == doctor.SKIP} == {'headers', 'build-abi', 'shell', 'load-test'}
+    assert not [c for c in machine.calls if c[:2] == ['hyprctl', 'plugin']]
+    doctor.main([], system=machine)
+    assert '1 problem, 0 warnings' in capsys.readouterr().out

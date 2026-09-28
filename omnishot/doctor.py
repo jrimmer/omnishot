@@ -14,7 +14,7 @@ import sys
 
 from . import __version__, compat
 
-OK, WARN, FAIL = "ok", "warn", "fail"
+OK, WARN, FAIL, SKIP = "ok", "warn", "fail", "skip"
 REPO = Path(__file__).resolve().parent.parent
 # Everything install.sh builds into native/ that the app loads or runs.
 NATIVE_FILES = ("clean-capture.so", "clean-mirror.so", "drag-status.so", "recording-guard.so",
@@ -25,7 +25,7 @@ RUNTIME_COMMANDS = {"grim": "grim", "slurp": "slurp", "wl-copy": "wl-clipboard",
                     "notify-send": "libnotify"}
 BINDINGS_MARKER = "-- OmniShot managed bindings"
 RULES_REQUIRE = 'require("hypr.omnishot")'
-MARKS = {OK: "✓", WARN: "!", FAIL: "✗"}
+MARKS = {OK: "✓", WARN: "!", FAIL: "✗", SKIP: "-"}
 
 
 @dataclass
@@ -178,9 +178,20 @@ CHECKS = (check_session, check_config, check_versions, check_headers, check_nati
           check_commands, check_launcher, check_hyprland_config, check_shell)
 
 
+# These compare against or talk to the running compositor and shell.
+NEEDS_SESSION = {check_headers: ("headers", "Hyprland header check"), check_build_abi: ("build-abi", "Build ABI check"),
+                 check_shell: ("shell", "Bar widget check"), load_test: ("load-test", "Load test")}
+
+
 def diagnose(system, load=False):
-    results = [check(system) for check in CHECKS]
-    if load:results.append(load_test(system))
+    checks = CHECKS + ((load_test,) if load else ())
+    results = [check_session(system)]
+    in_session = results[0].status == OK
+    for check in checks[1:]:
+        if not in_session and check in NEEDS_SESSION:
+            name, label = NEEDS_SESSION[check]
+            results.append(Result(name, SKIP, f"{label} skipped: needs the running compositor"))
+        else:results.append(check(system))
     return results
 
 
