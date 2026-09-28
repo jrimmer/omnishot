@@ -52,11 +52,10 @@ preserve(shell)
 layout=data.setdefault("bar",{}).setdefault("layout",{})
 def placed(id):return any(v.get("id")==id for section in ("left","center","right") for v in layout.get(section,[]))
 if placed(legacy_id):
-    # Keep the widget where the user put it, with any inline settings.
+    # Keep the widget where the user put it, with any inline settings. This
+    # wins over the default spot `omarchy plugin add --enable` just chose.
     for section in ("left","center","right"):
-        entries=layout.get(section,[])
-        if not any(v.get("id")==legacy_id for v in entries):continue
-        layout[section]=[v for v in entries if v.get("id")!=legacy_id] if placed(plugin_id) else [dict(v,id=plugin_id) if v.get("id")==legacy_id else v for v in entries]
+        if section in layout:layout[section]=[dict(v,id=plugin_id) if v.get("id")==legacy_id else v for v in layout[section] if v.get("id")!=plugin_id]
 if not managed and not placed(plugin_id):
     layout.setdefault("right",[]).insert(0,{"id":plugin_id})
 shell_text=json.dumps(data,indent=2)+"\n"

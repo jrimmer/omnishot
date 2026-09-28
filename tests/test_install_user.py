@@ -115,6 +115,16 @@ def test_migrates_legacy_widget_with_its_settings(install_home):
     assert ['omarchy', 'restart', 'shell'] in env.calls
 
 
+def test_migration_keeps_legacy_position_over_default_placement(install_home):
+    # `omarchy plugin add --enable` places the new id before setup migrates.
+    env = install_home
+    shell = env.config / 'omarchy/shell.json'
+    shell.write_text(json.dumps({'bar': {'layout': {'left': [], 'right': [
+        {'id': 'local.omnishot', 'custom': 1}, {'id': 'omarchy.tray'}, {'id': PLUGIN_ID}]}}}))
+    env.install()
+    assert layout(env)['right'] == [{'id': PLUGIN_ID, 'custom': 1}, {'id': 'omarchy.tray'}]
+
+
 def test_plugin_managed_checkout_is_never_written(install_home):
     env = install_home
     plugin = env.config / 'omarchy/plugins' / PLUGIN_ID
