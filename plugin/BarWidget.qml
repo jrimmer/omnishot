@@ -35,7 +35,7 @@ Panel {
         items = items.concat(recording ? [
             {label: "Stop recording", command: "stop"},
             {label: status.paused ? "Resume recording" : "Pause recording", command: "pause"}
-        ] : []
+        ] : [])
         return items.concat([
             {label: "All-in-one", command: "select"},
             {label: "Capture area", command: "area"},

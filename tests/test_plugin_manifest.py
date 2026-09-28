@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
+
+import pytest
 
 from omnishot.shell_panel import PLUGIN_ID
 
@@ -25,3 +28,13 @@ def test_repository_tracks_no_symlinks():
     # `omarchy plugin validate` rejects any symlink in the plugin folder.
     tracked = subprocess.run(['git', '-C', str(REPO), 'ls-files', '-s'], capture_output=True, text=True, check=True).stdout
     assert not [line for line in tracked.splitlines() if line.startswith('120000')]
+
+
+def test_widget_qml_parses():
+    # Unit tests never load the widget; the shell drops it on a syntax error.
+    lint = Path(sys.executable).with_name('pyside6-qmllint')
+    if not lint.exists():
+        pytest.skip('pyside6-qmllint is not installed')
+    widget = REPO / json.loads((REPO / 'manifest.json').read_text())['entryPoints']['barWidget']
+    result = subprocess.run([str(lint), str(widget)], capture_output=True, text=True)
+    assert '[syntax]' not in result.stdout + result.stderr, result.stdout + result.stderr
